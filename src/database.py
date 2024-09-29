@@ -1,7 +1,5 @@
 import sqlite3
-import asyncio
-import os
-import json
+from typing import List, Dict
 
 class Database:
     def __init__(self, db_path: str):
