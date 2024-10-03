@@ -5,7 +5,6 @@ class Database:
     def __init__(self, db_path: str):
         self.conn = sqlite3.connect(db_path)
         self.cursor = self.conn.cursor()
-        self._create_tables()
 
     def _create_tables(self):
         self.cursor.execute('''
@@ -41,10 +40,19 @@ class Database:
         )
         self.conn.commit()
 
+    def document_exists(self, filename: str) -> bool:
+        query = "SELECT COUNT(*) FROM documents WHERE filename = ?"
+        self.cursor.execute(query, (filename,))
+        return self.cursor.fetchone()[0] > 0
+
     def get_document(self, document_id: int) -> Dict[str, str]:
         self.cursor.execute('SELECT filename, content FROM documents WHERE id = ?', (document_id,))
         result = self.cursor.fetchone()
         return {'filename': result[0], 'content': result[1]} if result else None
+    
+    def get_all_documents(self) -> Dict[str, str]:
+        self.cursor.execute('SELECT id, filename FROM documents')
+        return [{'id': row[0], 'filename': row[1]} for row in self.cursor.fetchall()]
 
     def get_chunk(self, chunk_id: int) -> Dict[str, str]:
         self.cursor.execute('SELECT content FROM chunks WHERE id = ?', (chunk_id,))
@@ -54,6 +62,11 @@ class Database:
     def get_all_chunks(self) -> List[Dict[str, str]]:
         self.cursor.execute('SELECT id, content FROM chunks')
         return [{'id': row[0], 'content': row[1]} for row in self.cursor.fetchall()]
+    
+    def get_all_chunks_with_embeddings(self) -> List[Dict]:
+        query = "SELECT id, content, embedding FROM chunks"
+        self.cursor.execute(query)
+        return [{"id": row[0], "content": row[1], "embedding": row[2]} for row in self.cursor.fetchall()]
 
     def close(self):
         self.conn.close()

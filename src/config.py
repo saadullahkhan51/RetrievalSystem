@@ -9,3 +9,4 @@ class Config:
         self.documents_path = self.config['documents_path']
         self.db_path = self.config['db_path']
         self.index_path = self.config['index_path']
+        self.processed_files_path = self.config['processed_files_path']
