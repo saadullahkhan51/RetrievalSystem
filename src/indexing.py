@@ -6,7 +6,7 @@ class FAISSIndex:
         if index_path and os.path.exists(index_path):
             self.index = self._deserialize_faiss_index(index_path)
         else:
-            self.index = faiss.IndexFlatL2(dim)
+            self.index = faiss.IndexFlatIP(dim)
         self.index_path = index_path
 
     def add(self, vectors):

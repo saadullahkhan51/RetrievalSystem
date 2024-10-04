@@ -58,9 +58,11 @@ class RetrievalSystemApp:
         self.k_entry = ttk.Entry(query_frame, width=5)
         self.k_entry.grid(row=0, column=3, sticky="w", padx=5, pady=5)
 
-        ttk.Button(query_frame, text="Search", command=self.run_query).grid(row=1, column=0, columnspan=4, pady=10)
+        ttk.Button(query_frame, text="Search", command=self.run_query).grid(row=1, column=0, columnspan=2, pady=10)
+        self.edit_button = ttk.Button(query_frame, text="Enable Editing", command=self.toggle_edit_mode)
+        self.edit_button.grid(row=1, column=2, columnspan=2, pady=10)
 
-        self.query_result = tk.Text(query_frame, height=15, width=80, wrap=tk.WORD)
+        self.query_result = tk.Text(query_frame, height=15, width=80, wrap=tk.WORD, state="disabled")
         self.query_result.grid(row=2, column=0, columnspan=4, sticky="nsew", padx=5, pady=5)
         
         scrollbar = ttk.Scrollbar(query_frame, orient="vertical", command=self.query_result.yview)
@@ -68,6 +70,14 @@ class RetrievalSystemApp:
         self.query_result.configure(yscrollcommand=scrollbar.set)
 
         query_frame.rowconfigure(2, weight=1)
+
+    def toggle_edit_mode(self):
+        if self.query_result.cget("state") == "disabled":
+            self.query_result.config(state="normal")
+            self.edit_button.config(text="Disable Editing")
+        else:
+            self.query_result.config(state="disabled")
+            self.edit_button.config(text="Enable Editing")
 
     def create_add_docs_tab(self):
         add_docs_frame = ttk.Frame(self.notebook, padding="10")
@@ -99,16 +109,22 @@ class RetrievalSystemApp:
 
     def run_query(self):
         query = self.query_entry.get()
-        k = self.k_entry.get()
+        k = int(self.k_entry.get())
         if query:
             self.status_bar.config(text="Searching...")
             self.master.update_idletasks()
             response = asyncio.run(self.retrieval_system.generate_response(query, k))
-            self.query_result.delete(1.0, tk.END)
-            self.query_result.insert(tk.END, response)
+            self.update_query_result(response)
             self.status_bar.config(text="Search completed")
         else:
             messagebox.showwarning("Empty Query", "Please enter a query.")
+
+    def update_query_result(self, text):
+        current_state = self.query_result.cget("state")
+        self.query_result.config(state="normal")
+        self.query_result.delete(1.0, tk.END)
+        self.query_result.insert(tk.END, text)
+        self.query_result.config(state=current_state)
 
     def add_documents(self):
         directory = filedialog.askdirectory()

@@ -59,6 +59,7 @@ class EmbeddingRetrievalSystem:
             for chunk, embedding in zip(batch, embeddings):
                 self.db.add_chunk(doc_id, chunk, embedding.tobytes())
                 self.index.add(embedding.reshape(1, -1))
+        self.index.save()
 
     def _split_into_chunks(self, text: str) -> List[str]:
         # Implementation of text splitting logic
@@ -72,7 +73,7 @@ class EmbeddingRetrievalSystem:
         return self.embedder.encode(texts)
     
     async def rebuild_index(self):
-        self.index = FAISSIndex(self.embedder.model.get_sentence_embedding_dimension())
+        self.index = FAISSIndex(self.embedder.model.get_sentence_embedding_dimension(), self.config.index_path)
         chunks_with_embeddings = self.db.get_all_chunks_with_embeddings()
 
         # Process embeddings in batches
@@ -87,20 +88,24 @@ class EmbeddingRetrievalSystem:
         print(f"Index rebuilt with {len(chunks_with_embeddings)} embeddings.")
 
     async def search(self, query: str, top_k: int = 3) -> List[Dict[str, float]]:
+        query = self._preprocess_query(query)
         query_embedding = await self._generate_embeddings([query])
         scores, indices = self.index.search(query_embedding, top_k)
-        
+
         results = []
-        for score, idx in zip(scores[0], indices[0]):
-            chunk = self.db.get_chunk(int(idx) + 1)
+        for i in range(top_k):
+            chunk = self.db.get_chunk(int(indices[0][i]) + 1)
             if chunk:
                 results.append({
-                    "score": float(score),
+                    "score": float(scores[0][i]),
                     "chunk": chunk['content']
                 })
-        
         return results
-
+    
+    def _preprocess_query(self, query: str) -> str:
+        # Remove punctuation, lowercase, etc.
+        return query.lower().strip()
+    
     async def generate_response(self, query: str, k: int = 3) -> str:
         results = await self.search(query, k)
         if not results:
