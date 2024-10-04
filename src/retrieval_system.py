@@ -101,15 +101,15 @@ class EmbeddingRetrievalSystem:
         
         return results
 
-    async def generate_response(self, query: str) -> str:
-        results = await self.search(query)
+    async def generate_response(self, query: str, k: int = 3) -> str:
+        results = await self.search(query, k)
         if not results:
             return "I couldn't find any relevant information for your query."
         
-        relevant_chunk = results[0]['chunk']
-        response = f"Based on the query '{query}', here's what I found:\n\n{relevant_chunk}\n\n"
-        response += f"This information has a relevance score of {results[0]['score']:.2f}."
-        
+        response = f"Query: '{query}'\n\nTop {k} relevant chunks:\n\n"
+        for i, result in enumerate(results, 1):
+            response += f"{i}. Score: {result['score']:.4f}\n   Chunk: {result['chunk']}\n\n"
+
         return response
 
     def close(self):
